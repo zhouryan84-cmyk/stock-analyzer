@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A股智能分析系统</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0a0e1a; }
+    .app {
+      min-height: 100vh;
+      background: #0a0e1a;
+      background-image:
+        radial-gradient(ellipse at 15% 20%, rgba(220,38,38,0.07) 0%, transparent 50%),
+        radial-gradient(ellipse at 85% 75%, rgba(99,102,241,0.06) 0%, transparent 50%);
+      font-family: 'Noto Serif SC', serif;
+      color: #e8e0d0;
+      padding: 32px 20px;
+    }
+    .header { text-align: center; margin-bottom: 40px; }
+    .logo-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      color: white; font-size: 11px; letter-spacing: 3px;
+      padding: 5px 14px; border-radius: 2px; margin-bottom: 16px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .ds-dot { width:7px;height:7px;border-radius:50%;background:#a5b4fc;animation:pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+    .title {
+      font-size: clamp(26px, 5vw, 46px); font-weight: 700;
+      background: linear-gradient(135deg, #f59e0b 0%, #fcd34d 50%, #f59e0b 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 8px;
+    }
+    .subtitle { color: #6b7280; font-size: 13px; letter-spacing: 1px; font-family: 'JetBrains Mono', monospace; }
+    .powered { display: block; margin-top: 6px; font-size: 11px; color: #374151; font-family: 'JetBrains Mono', monospace; }
+    .powered span { color: #818cf8; }
+    .main-card { max-width: 900px; margin: 0 auto; }
+
+    .apikey-panel {
+      background: rgba(99,102,241,0.04); border: 1px solid rgba(99,102,241,0.2);
+      border-radius: 12px; padding: 20px 24px; margin-bottom: 20px;
+    }
+    .apikey-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .apikey-label { font-size: 11px; color: #818cf8; letter-spacing: 2px; font-family: 'JetBrains Mono', monospace; }
+    .apikey-status { font-size: 11px; font-family: 'JetBrains Mono', monospace; padding: 2px 10px; border-radius: 10px; }
+    .status-set { background: rgba(34,197,94,0.1); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
+    .status-unset { background: rgba(220,38,38,0.1); color: #f87171; border: 1px solid rgba(220,38,38,0.2); }
+    .apikey-row { display: flex; gap: 10px; }
+    .apikey-input {
+      flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 10px 14px; color: #e8e0d0; font-size: 13px;
+      font-family: 'JetBrains Mono', monospace; outline: none; transition: border-color .2s;
+    }
+    .apikey-input:focus { border-color: rgba(99,102,241,0.5); }
+    .apikey-input::placeholder { color: #374151; }
+    .save-btn {
+      background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3); color: #818cf8;
+      border-radius: 8px; padding: 10px 18px; font-size: 12px; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; transition: all .2s; white-space: nowrap;
+    }
+    .save-btn:hover { background: rgba(99,102,241,0.28); }
+    .edit-btn {
+      background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2); color: #818cf8;
+      border-radius: 8px; padding: 10px 18px; font-size: 12px; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; transition: all .2s;
+    }
+    .edit-btn:hover { background: rgba(99,102,241,0.2); }
+    .clear-btn {
+      background: rgba(220,38,38,0.08); border: 1px solid rgba(220,38,38,0.2); color: #f87171;
+      border-radius: 8px; padding: 10px 14px; font-size: 12px; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; transition: all .2s;
+    }
+    .clear-btn:hover { background: rgba(220,38,38,0.18); }
+    .apikey-hint { margin-top: 10px; font-size: 11px; color: #4b5563; font-family: 'JetBrains Mono', monospace; line-height: 2; }
+    .apikey-hint a { color: #818cf8; text-decoration: underline; }
+    .cheap-badge {
+      display: inline-block; background: rgba(34,197,94,0.12); color: #4ade80;
+      border: 1px solid rgba(34,197,94,0.25); border-radius: 4px; padding: 1px 6px;
+      font-size: 10px; margin-left: 4px; vertical-align: middle;
+    }
+    .search-box {
+      background: rgba(255,255,255,0.025); border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 12px; padding: 24px; margin-bottom: 24px;
+    }
+    .search-label { font-size: 12px; color: #f59e0b; letter-spacing: 2px; font-family: 'JetBrains Mono', monospace; margin-bottom: 12px; display: block; }
+    .input-row { display: flex; gap: 12px; }
+    .search-input {
+      flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 14px 18px; color: #e8e0d0; font-size: 16px;
+      font-family: 'Noto Serif SC', serif; outline: none; transition: border-color .2s;
+    }
+    .search-input:focus { border-color: rgba(245,158,11,0.5); }
+    .search-input::placeholder { color: #4b5563; }
+    .analyze-btn {
+      background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; border: none;
+      border-radius: 8px; padding: 14px 28px; font-size: 15px; font-family: 'Noto Serif SC', serif;
+      cursor: pointer; transition: all .2s; white-space: nowrap; font-weight: 600; letter-spacing: 1px;
+    }
+    .analyze-btn:hover:not(:disabled) { background: linear-gradient(135deg,#ef4444,#dc2626); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(220,38,38,.3); }
+    .analyze-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .tags-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
+    .tag-label { font-size: 11px; color: #4b5563; font-family: 'JetBrains Mono', monospace; }
+    .stock-tag {
+      background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: #f59e0b;
+      padding: 4px 12px; border-radius: 20px; font-size: 12px; cursor: pointer;
+      transition: all .2s; font-family: 'JetBrains Mono', monospace;
+    }
+    .stock-tag:hover { background: rgba(245,158,11,0.18); border-color: rgba(245,158,11,0.5); }
+    .loading-panel { background: rgba(255,255,255,0.02); border: 1px solid rgba(245,158,11,0.12); border-radius: 12px; padding: 48px; text-align: center; }
+    .loading-spinner { width: 48px; height: 48px; border: 2px solid rgba(245,158,11,0.15); border-top-color: #f59e0b; border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 20px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .progress-text { color: #f59e0b; font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 1px; }
+    .progress-steps { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+    .step { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: #374151; transition: color .3s; }
+    .step.active { color: #f59e0b; }
+    .step.done { color: #4ade80; }
+    .report-panel { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; overflow: hidden; animation: fadeIn .5s ease; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    .report-header { background: linear-gradient(135deg,rgba(220,38,38,.12),rgba(185,28,28,.08)); border-bottom: 1px solid rgba(220,38,38,.2); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .report-title-text { font-size: 12px; color: #dc2626; font-family: 'JetBrains Mono', monospace; letter-spacing: 2px; }
+    .report-actions { display: flex; align-items: center; gap: 12px; }
+    .report-time { font-size: 11px; color: #4b5563; font-family: 'JetBrains Mono', monospace; }
+    .copy-btn { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: #9ca3af; border-radius: 6px; padding: 4px 12px; font-size: 11px; cursor: pointer; font-family: 'JetBrains Mono', monospace; transition: all .2s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.1); color: #e8e0d0; }
+    .report-content { padding: 28px 32px; line-height: 1.95; }
+    .rline { margin-bottom: 6px; color: #d1c9bb; font-size: 15px; }
+    .rtitle { font-size: 17px; color: #f59e0b; margin: 26px 0 12px; padding-bottom: 6px; border-bottom: 1px solid rgba(245,158,11,0.18); font-weight: 600; }
+    .rtitle2 { font-size: 15px; color: #fbbf24; margin: 16px 0 8px; font-weight: 600; }
+    .ritem { margin: 5px 0 5px 20px; color: #d1c9bb; font-size: 14px; list-style: none; padding-left: 12px; border-left: 2px solid rgba(245,158,11,0.28); line-height: 1.7; }
+    strong { color: #fcd34d; font-weight: 600; }
+    .error-panel { background: rgba(220,38,38,0.04); border: 1px solid rgba(220,38,38,0.2); border-radius: 12px; padding: 24px; color: #f87171; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.9; }
+    .error-tip { margin-top: 10px; color: #fbbf24; font-size: 12px; }
+    .disclaimer { text-align: center; color: #2d3748; font-size: 11px; margin-top: 24px; font-family: 'JetBrains Mono', monospace; }
+    @media (max-width: 600px) {
+      .input-row, .apikey-row { flex-direction: column; }
+      .report-content { padding: 20px 16px; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const STORAGE_KEY  = "ashare_ds_key";
+const HISTORY_KEY  = "ashare_history";
+const DEFAULT_STOCKS = ["长飞光纤","宁德时代","中芯国际","贵州茅台","比亚迪"];
+const STEPS = ["读取股票信息…","分析基本面数据…","评估行业动态…","生成投资建议…","输出完整报告…"];
+
+function renderMd(text) {
+  return text.split("\n").map((line, i) => {
+    if (/^#{1,2} /.test(line)) return <h2 key={i} className="rtitle">{line.replace(/^#{1,2} /,"")}</h2>;
+    if (/^###/.test(line))     return <h3 key={i} className="rtitle2">{line.replace(/^###+ /,"")}</h3>;
+    if (/\*\*/.test(line)) {
+      const parts = line.split("**");
+      return <p key={i} className="rline">{parts.map((p,j)=>j%2===1?<strong key={j}>{p}</strong>:p)}</p>;
+    }
+    if (/^[-•*]\s/.test(line)||/^\d+\.\s/.test(line))
+      return <li key={i} className="ritem">{line.replace(/^[-•*\d.]+\s/,"")}</li>;
+    if (line.trim()==="") return <br key={i}/>;
+    return <p key={i} className="rline">{line}</p>;
+  });
+}
+
+function App() {
+  const [apiKey,    setApiKey]    = useState(()=>localStorage.getItem(STORAGE_KEY)||"");
+  const [keyInput,  setKeyInput]  = useState("");
+  const [keySet,    setKeySet]    = useState(()=>!!localStorage.getItem(STORAGE_KEY));
+  const [showInput, setShowInput] = useState(!localStorage.getItem(STORAGE_KEY));
+  const [input,     setInput]     = useState("");
+  const [loading,   setLoading]   = useState(false);
+  const [stepIdx,   setStepIdx]   = useState(-1);
+  const [report,    setReport]    = useState(null);
+  const [reportFor, setReportFor] = useState("");
+  const [error,     setError]     = useState(null);
+  const [copied,    setCopied]    = useState(false);
+  const [history,   setHistory]   = useState(()=>{
+    try { return JSON.parse(localStorage.getItem(HISTORY_KEY))||DEFAULT_STOCKS; }
+    catch { return DEFAULT_STOCKS; }
+  });
+
+  const saveKey = () => {
+    const k = keyInput.trim();
+    if (!k) { alert("请输入 DeepSeek API Key"); return; }
+    localStorage.setItem(STORAGE_KEY, k);
+    setApiKey(k); setKeySet(true); setShowInput(false); setKeyInput("");
+  };
+
+  const clearKey = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setApiKey(""); setKeySet(false); setShowInput(true);
+  };
+
+  const analyze = async (name) => {
+    name = (name || input).trim();
+    if (!name) return;
+    if (!apiKey) { setShowInput(true); return; }
+
+    setLoading(true); setReport(null); setError(null); setReportFor(name); setStepIdx(0);
+    const timers = STEPS.map((_,i)=>setTimeout(()=>setStepIdx(i), i*1200));
+
+    try {
+      // 调用同域的 /api/analyze 接口，由服务器转发给 DeepSeek，避免 CORS 问题
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stock: name, apiKey })
+      });
+
+      timers.forEach(clearTimeout);
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `请求失败 (${res.status})`);
+      if (!data.result) throw new Error("未获取到有效回复，请重试");
+
+      setStepIdx(STEPS.length);
+      setReport(data.result);
+
+      const h = [name, ...history.filter(x=>x!==name)].slice(0,8);
+      setHistory(h);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+    } catch(e) {
+      timers.forEach(clearTimeout);
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copy = () => {
+    if (!report) return;
+    navigator.clipboard.writeText(report).then(()=>{ setCopied(true); setTimeout(()=>setCopied(false),2000); });
+  };
+
+  return (
+    <div className="app">
+      <div className="header">
+        <div className="logo-badge"><span className="ds-dot"/> DEEPSEEK · A股分析</div>
+        <h1 className="title">A股智能分析系统</h1>
+        <p className="subtitle">深度研究 · 专业报告 · AI驱动</p>
+        <span className="powered">Powered by <span>DeepSeek-V3</span> · 国产顶级大模型</span>
+      </div>
+
+      <div className="main-card">
+        <div className="apikey-panel">
+          <div className="apikey-header">
+            <span className="apikey-label">DEEPSEEK API KEY</span>
+            <span className={`apikey-status ${keySet?"status-set":"status-unset"}`}>{keySet?"✓ 已配置":"未配置"}</span>
+          </div>
+          {showInput ? (
+            <>
+              <div className="apikey-row">
+                <input className="apikey-input" type="password" placeholder="sk-..."
+                  value={keyInput} onChange={e=>setKeyInput(e.target.value)}
+                  onKeyDown={e=>e.key==="Enter"&&saveKey()} />
+                <button className="save-btn" onClick={saveKey}>保存</button>
+                {keySet && <button className="clear-btn" onClick={()=>setShowInput(false)}>取消</button>}
+              </div>
+              <div className="apikey-hint">
+                获取 Key：<a href="https://platform.deepseek.com/api_keys" target="_blank">platform.deepseek.com</a>
+                <span className="cheap-badge">极便宜</span><br/>
+                充值支持支付宝 · ¥10 可用数月 · Key 仅保存在本地浏览器
+              </div>
+            </>
+          ) : (
+            <div style={{display:"flex",gap:"10px"}}>
+              <button className="edit-btn" onClick={()=>setShowInput(true)}>修改 Key</button>
+              <button className="clear-btn" onClick={clearKey}>清除</button>
+            </div>
+          )}
+        </div>
+
+        <div className="search-box">
+          <label className="search-label">INPUT STOCK · 输入股票名称或代码</label>
+          <div className="input-row">
+            <input className="search-input" placeholder="如：长飞光纤、宁德时代、688516…"
+              value={input} onChange={e=>setInput(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&analyze()} disabled={loading} />
+            <button className="analyze-btn" onClick={()=>analyze()} disabled={loading||!input.trim()}>
+              {loading?"分析中…":"开始分析"}
+            </button>
+          </div>
+          <div className="tags-row">
+            <span className="tag-label">历史：</span>
+            {history.map(s=>(
+              <button key={s} className="stock-tag" onClick={()=>{setInput(s);analyze(s);}}>{s}</button>
+            ))}
+          </div>
+        </div>
+
+        {loading && (
+          <div className="loading-panel">
+            <div className="loading-spinner"/>
+            <div className="progress-text">DeepSeek 正在深度分析中…</div>
+            <div className="progress-steps">
+              {STEPS.map((s,i)=>(
+                <div key={i} className={`step ${i<stepIdx?"done":i===stepIdx?"active":""}`}>
+                  {i<stepIdx?"✓ ":i===stepIdx?"▶ ":"  "}{s}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {error && !loading && (
+          <div className="error-panel">
+            <div style={{fontSize:"15px",marginBottom:"8px"}}>⚠ 请求失败</div>
+            <div>{error}</div>
+            {(error.includes("401")||error.includes("Unauthorized")) &&
+              <div className="error-tip">→ API Key 不正确，请检查后重新填写</div>}
+            {(error.includes("402")||error.includes("insufficient")||error.includes("balance")) &&
+              <div className="error-tip">→ 账户余额不足，请前往 <a href="https://platform.deepseek.com" target="_blank" style={{color:"#818cf8"}}>platform.deepseek.com</a> 充值（支持支付宝）</div>}
+            {error.includes("429") &&
+              <div className="error-tip">→ 请求太频繁，稍等几秒后重试</div>}
+          </div>
+        )}
+
+        {report && !loading && (
+          <div className="report-panel">
+            <div className="report-header">
+              <span className="report-title-text">INVESTMENT REPORT · {reportFor} 投资分析报告</span>
+              <div className="report-actions">
+                <span className="report-time">{new Date().toLocaleDateString("zh-CN")} 生成</span>
+                <button className="copy-btn" onClick={copy}>{copied?"✓ 已复制":"复制报告"}</button>
+              </div>
+            </div>
+            <div className="report-content">{renderMd(report)}</div>
+          </div>
+        )}
+
+        <p className="disclaimer">⚠ 本报告由 AI 生成，仅供参考，不构成投资建议。投资有风险，入市需谨慎。</p>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
